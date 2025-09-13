@@ -63,31 +63,39 @@ const ActionButton = ({ isLoading, onCheckSecurity }) => {
         onClick={handleClick}
         disabled={isLoading}
         className={`
-          ${isLoading ? 'btn-loading' : 'btn-primary'}
-          text-xl px-8 py-4 rounded-xl transform transition-all duration-200
-          ${!isLoading ? 'hover:scale-105 active:scale-95' : ''}
-          flex items-center justify-center mx-auto min-w-64
+          ${isLoading 
+            ? 'bg-gray-700 cursor-not-allowed' 
+            : 'bg-white hover:bg-gray-100'
+          }
+          text-black font-semibold text-lg px-8 py-4 rounded-lg 
+          transition-colors duration-200
+          flex items-center justify-center mx-auto
         `}
       >
         {isLoading ? (
           <>
-            <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Analyzing Security...
+            <span className="text-gray-400">Analyzing Security...</span>
           </>
         ) : (
           <>
-            🛡️ Check My Security Status
+            <div className="w-5 h-5 mr-3 flex items-center justify-center">
+              <img src="/hackathon_logo.png" alt="Logo" className="w-full h-full object-contain" />
+            </div>
+            <span>Check My Security Status</span>
           </>
         )}
       </button>
       
       {!isLoading && (
-        <p className="mt-4 text-gray-600 text-sm max-w-md mx-auto">
-          Click to analyze your current digital and physical security risk based on your location and network connection.
-        </p>
+        <div className="mt-6 max-w-md mx-auto">
+          <p className="text-gray-400 text-sm leading-relaxed">
+            Click to analyze your current digital and physical security risk based on your location and network connection.
+          </p>
+        </div>
       )}
     </div>
   );
