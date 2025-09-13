@@ -1,125 +1,77 @@
 """
 Threat Intelligence Service for AI Cyber Protecting App
-Provides cyber threat information based on geographic location.
+Provides criminal threat information based on geographic location.
 """
-from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
 
-# Mock threat intelligence data (for v1.0 implementation)
-MOCK_THREATS = {
-    "New York": {
-        "type": "Phishing Scam", 
-        "reported": "2025-09-12",
-        "severity": "High",
-        "description": "Widespread phishing campaign targeting financial institutions"
-    },
-    "Chicago": {
-        "type": "Ransomware Attack", 
-        "reported": "2025-09-10",
-        "severity": "Critical",
-        "description": "Ransomware targeting small businesses in the area"
-    },
-    "Los Angeles": {
-        "type": "WiFi Spoofing", 
-        "reported": "2025-09-11",
-        "severity": "Medium",
-        "description": "Fake WiFi hotspots detected in public areas"
-    },
-    "San Francisco": {
-        "type": "Data Breach", 
-        "reported": "2025-09-09",
-        "severity": "High",
-        "description": "Major tech company data breach affecting local users"
-    }
-}
+import json
+from datetime import datetime
+import google.generativeai as genai
 
-def get_threats_by_city(city):
+# CityProtect uses this specific date format in their API requests
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+def get_cyber_threats_by_zip(zip_code: str) -> int:
     """
-    Retrieve threat intelligence for a specific city.
+    Uses the Gemini API to generate a mock list of realistic cyber threats for a given zip code.
     
     Args:
-        city (str): Name of the city to check for threats
-    
-    Returns:
-        dict: Threat information or None if no threats found
-    """
-    if city in MOCK_THREATS:
-        threat_data = MOCK_THREATS[city].copy()
-        
-        # Check if threat is recent (within last 7 days)
-        threat_date = datetime.strptime(threat_data["reported"], "%Y-%m-%d")
-        days_ago = (datetime.now() - threat_date).days
-        
-        if days_ago <= 7:
-            threat_data["threat_detected"] = True
-            threat_data["days_since_reported"] = days_ago
-            threat_data["is_recent"] = True
-        else:
-            threat_data["threat_detected"] = False
-            threat_data["days_since_reported"] = days_ago
-            threat_data["is_recent"] = False
-        
-        return threat_data
-    
-    return {
-        "threat_detected": False,
-        "message": "No recent threats detected in this area"
-    }
+        zip_code (str): The user's zip code.
 
-def get_threat_summary(threat_data):
-    """
-    Generate a human-readable summary of threat information.
-    
-    Args:
-        threat_data (dict): Threat information from get_threats_by_city
-    
     Returns:
-        str: Formatted threat summary
+        dict: A dictionary containing cyber threat data or an error message.
     """
-    if not threat_data or not threat_data.get("threat_detected"):
-        return "No active threats detected in your area."
-    
-    threat_type = threat_data.get("type", "Unknown threat")
-    severity = threat_data.get("severity", "Unknown")
-    days_ago = threat_data.get("days_since_reported", 0)
-    
-    if days_ago == 0:
-        time_desc = "today"
-    elif days_ago == 1:
-        time_desc = "yesterday"
-    else:
-        time_desc = f"{days_ago} days ago"
-    
-    return f"{severity} severity {threat_type} reported {time_desc}"
 
-def assess_threat_risk_level(threat_data):
+    # --- Environment Variable Setup ---
+    # Make sure to add your GEMINI_API_KEY to your .env file
+    try:
+        load_dotenv()
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    except Exception as e:
+        print(f"Error configuring Gemini API: {e}. Please check your GEMINI_API_KEY.")
+        
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    
+    # Current date for context
+    current_date = datetime.now()
+
+    prompt = f"""
+    Act as a senior cyber-intelligence analyst. Your task is to generate a realistic, mock list of 0-3 recent cyber threats for Zipcode location {zip_code}.
+    Base these threats on recent, publicly available news about the city, or its well-known characteristics (e.g., major universities, industries, events).
+    The current date is {current_date}. The threats should be plausible for the past month. If a city is safe enough, you can just return an empty list of cyber threats.
+
+    The output MUST be a JSON object with a single key "threats" which contains a list of threat dictionaries.
+    Each dictionary in the list must have the following keys:
+    - "threat_type": A short description (e.g., "Phishing Scam", "Ransomware Attack", "Data Breach").
+    - "target": The group being targeted (e.g., "Local University Students", "Small Business Owners", "General Public").
+    - "description": A one-sentence summary of the threat.
+    - "reported_date": A realistic date within the last month, formatted as "YYYY-MM-DD".
+    - "severity": A rating of "Low", "Medium", or "High".
+
+    Example format:
+    {{
+      "threats": [
+        {{
+          "threat_type": "Phishing Scam",
+          "target": "Local University Students",
+          "description": "Emails pretending to be from the university's financial aid office are attempting to steal login credentials.",
+          "reported_date": "2025-08-28",
+          "severity": "High"
+        }}
+      ]
+    }}
+
+    Generate the JSON object for Zipcode {zip_code} now.
     """
-    Assess the risk level based on threat data.
-    
-    Returns:
-        str: Risk level (Low, Medium, High, Critical)
-    """
-    if not threat_data or not threat_data.get("threat_detected"):
-        return "Low"
-    
-    severity = threat_data.get("severity", "Unknown").lower()
-    days_ago = threat_data.get("days_since_reported", 999)
-    
-    # Recent threats (0-2 days) increase risk level
-    if days_ago <= 2:
-        if severity in ["critical", "high"]:
-            return "Critical"
-        elif severity == "medium":
-            return "High"
-        else:
-            return "Medium"
-    
-    # Older but recent threats (3-7 days)
-    elif days_ago <= 7:
-        if severity == "critical":
-            return "High"
-        elif severity == "high":
-            return "Medium"
-        else:
-            return "Low"
-    
-    return "Low"
+
+    try:
+        response = model.generate_content(prompt)
+        # Clean up the response to extract only the JSON part
+        json_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+        threat_data = json.loads(json_text)
+        return len(threat_data)
+    except Exception as e:
+        print(f"Error calling Gemini API or parsing its response: {e}")
+        # {"error": "Failed to generate cyber threat data."}
+        return 0

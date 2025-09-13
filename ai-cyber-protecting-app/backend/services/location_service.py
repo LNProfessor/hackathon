@@ -2,52 +2,37 @@
 Location Service for AI Cyber Protecting App
 Provides location-based utilities including city lookup and distance calculations.
 """
+import os
+from dotenv import load_dotenv
+
+import requests
+from requests.structures import CaseInsensitiveDict
+
 import math
 
-# Mock city data for reverse geocoding (simplified for v1.0)
-CITY_BOUNDARIES = {
-    "New York": {
-        "lat_range": (40.4774, 40.9176),
-        "lon_range": (-74.2591, -73.7004)
-    },
-    "Chicago": {
-        "lat_range": (41.6444, 42.0230),
-        "lon_range": (-87.9401, -87.5244)
-    },
-    "Los Angeles": {
-        "lat_range": (33.7037, 34.3373),
-        "lon_range": (-118.6682, -118.1553)
-    },
-    "San Francisco": {
-        "lat_range": (37.7081, 37.8085),
-        "lon_range": (-122.5170, -122.3558)
-    },
-    "Miami": {
-        "lat_range": (25.7617, 25.8554),
-        "lon_range": (-80.3762, -80.1301)
-    }
-}
+WHITELISTED_LOCATIONS_FILENAME = '/database/whitelisted_locations'
 
-def get_city(latitude, longitude):
-    """
-    Perform reverse geocoding to get city name from coordinates.
+def get_address(latitude, longitude):
+    load_dotenv()
+    api_key = os.getenv('GEOAPIFY_API_KEY')
+
+    url = f"https://api.geoapify.com/v1/geocode/reverse?lat={latitude}&lon={longitude}&apiKey={api_key}"
+
+    headers = CaseInsensitiveDict()
+    headers["Accept"] = "application/json"
+
+    response = requests.get(url, headers=headers)
+    location = response.json()['features'][0]['properties']
     
-    Args:
-        latitude (float): Latitude coordinate
-        longitude (float): Longitude coordinate
-    
-    Returns:
-        str: City name or "Unknown" if not found
-    """
-    for city, boundaries in CITY_BOUNDARIES.items():
-        lat_min, lat_max = boundaries["lat_range"]
-        lon_min, lon_max = boundaries["lon_range"]
-        
-        if (lat_min <= latitude <= lat_max and 
-            lon_min <= longitude <= lon_max):
-            return city
-    
-    return "Unknown"
+    address = {
+        'housenumber': location['housenumber'],
+        'street': location['street'],
+        'state': location['state'],
+        'country': location['country'],
+        'postcode': location['postcode']
+    }
+
+    return address
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     """
@@ -86,13 +71,21 @@ def get_location_context(latitude, longitude):
     Returns:
         dict: Location context including city and coordinate info
     """
-    city = get_city(latitude, longitude)
+    return get_address(latitude, longitude)
+
+def check_location_is_whitelisted(user_latitude, user_longitude):
+    distance_from_closest_safe_location = math.inf
+
+    with open(WHITELISTED_LOCATIONS_FILENAME, 'r') as file:
+        for line in file:
+            
+            safe_latitude, safe_longitude = line.split("|")
+            distance_from_safe_location = calculate_distance(user_latitude, user_longitude, safe_latitude, safe_longitude)
     
-    return {
-        "city": city,
-        "coordinates": {
-            "latitude": latitude,
-            "longitude": longitude
-        },
-        "formatted_location": f"{city} ({latitude:.4f}, {longitude:.4f})"
-    }
+            # Consider "home" if within 0.5 km radius
+            if distance_from_safe_location <= 0.5:
+                return True, distance_from_safe_location # User is at a safe location :)
+            
+            distance_from_closest_safe_location = min(distance_from_closest_safe_location, distance_from_safe_location)
+                
+        return False, distance_from_closest_safe_location # User is at unknown location :(

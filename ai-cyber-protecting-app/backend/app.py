@@ -8,11 +8,12 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 
 # Import services
-from services.risk_scorer import calculate_risk, get_zone_message, get_base_recommendations
-from services.location_service import get_city, get_location_context
-from services.threat_service import get_threats_by_city, get_threat_summary
+from services.risk_calculator import calculate_risk
+from services.location_service import get_location_context
+from services.threat_service import get_cyber_threats_by_zip
 from services.email_service_simple import send_red_alert_email
 from services.llm_service import generate_recommendations, test_openai_connection
+from services.network_service import get_user_ip
 
 # Load environment variables
 load_dotenv()
@@ -52,7 +53,7 @@ def check_security():
         # Extract required fields
         latitude = data.get('latitude')
         longitude = data.get('longitude')
-        wifi_ssid = data.get('wifiSSID', '')
+        ip = get_user_ip(request)
         
         # Validate required fields
         if latitude is None or longitude is None:
@@ -70,13 +71,13 @@ def check_security():
         
         # Step 1: Get location context
         location_context = get_location_context(latitude, longitude)
-        city = location_context['city']
+        zipcode = location_context['postcode']
         
         # Step 2: Get threat intelligence for the area
-        threat_data = get_threats_by_city(city)
+        num_threats = get_cyber_threats_by_zip(zipcode)
         
         # Step 3: Calculate risk score using weighted scoring engine
-        risk_assessment = calculate_risk(latitude, longitude, wifi_ssid, threat_data)
+        risk_assessment = calculate_risk(latitude, longitude, ip, num_threats)
         
         risk_score = risk_assessment['risk_score']
         zone = risk_assessment['zone']
@@ -84,7 +85,7 @@ def check_security():
         
         # Step 4: Generate recommendations (AI-powered or static fallback)
         recommendations_data = generate_recommendations(
-            zone, risk_factors, location_context, threat_data
+            zone, risk_factors, location_context, num_threats
         )
         
         reason = recommendations_data['reason']
@@ -107,15 +108,14 @@ def check_security():
             "recommendations": recommendations,
             "emailSent": email_sent,
             "location": {
-                "city": city,
+                "zipcode": zipcode,
                 "coordinates": {
                     "latitude": latitude,
                     "longitude": longitude
                 }
             },
             "threatInfo": {
-                "detected": threat_data.get('threat_detected', False),
-                "summary": get_threat_summary(threat_data) if threat_data.get('threat_detected') else None
+                "detected": num_threats,
             },
             "riskFactors": risk_factors
         }
@@ -134,37 +134,37 @@ def check_security():
             "details": str(e) if app.debug else None
         }), 500
 
-@app.route('/api/test-connection', methods=['GET'])
-def test_connection():
-    """Test endpoint to verify backend connectivity and service status."""
-    try:
-        # Test OpenAI connection
-        openai_status = test_openai_connection()
+# @app.route('/api/test-connection', methods=['GET'])
+# def test_connection():
+#     """Test endpoint to verify backend connectivity and service status."""
+#     try:
+#         # Test OpenAI connection
+#         openai_status = test_openai_connection()
         
-        # Test basic services
-        test_lat, test_lon = 40.7128, -74.0060  # NYC coordinates
-        test_city = get_city(test_lat, test_lon)
-        test_threats = get_threats_by_city(test_city)
+#         # Test basic services
+#         test_lat, test_lon = 40.7128, -74.0060  # NYC coordinates
+#         test_city = get_city(test_lat, test_lon)
+#         test_threats = get_threats_by_city(test_city)
         
-        return jsonify({
-            "status": "success",
-            "services": {
-                "location_service": "operational" if test_city else "error",
-                "threat_service": "operational" if test_threats else "error",
-                "openai_service": "operational" if openai_status else "unavailable",
-                "email_service": "operational"  # Always available in demo mode
-            },
-            "test_results": {
-                "sample_city": test_city,
-                "threats_detected": test_threats.get('threat_detected', False)
-            }
-        })
+#         return jsonify({
+#             "status": "success",
+#             "services": {
+#                 "location_service": "operational" if test_city else "error",
+#                 "threat_service": "operational" if test_threats else "error",
+#                 "openai_service": "operational" if openai_status else "unavailable",
+#                 "email_service": "operational"  # Always available in demo mode
+#             },
+#             "test_results": {
+#                 "sample_city": test_city,
+#                 "threats_detected": test_threats.get('threat_detected', False)
+#             }
+#         })
     
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+#     except Exception as e:
+#         return jsonify({
+#             "status": "error",
+#             "message": str(e)
+#         }), 500
 
 @app.errorhandler(404)
 def not_found(error):

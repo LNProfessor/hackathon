@@ -11,7 +11,7 @@ client = None
 def initialize_openai_client():
     """Initialize the OpenAI client with API key from environment."""
     global client
-    api_key = os.getenv('OPENAI_API_KEY')
+    api_key = os.getenv('GEMINI_API_KEY')
     if api_key:
         client = OpenAI(api_key=api_key)
         return True

@@ -2,19 +2,19 @@
 Risk Scoring Engine for AI Cyber Protecting App
 Implements a weighted risk scoring system based on location, WiFi, and threat intelligence.
 """
-import os
-from .location_service import calculate_distance
+from services.location_service import check_location_is_whitelisted
+from services.network_service import get_network_info
 
-# Safe WiFi SSIDs (pre-configured safe zones)
-SAFE_SSIDS = [
-    'Starbucks_WiFi',
-    'Target_Guest_WiFi', 
-    'Barnes_Noble_WiFi',
-    'Home_Network',
-    'Office_Secure_WiFi'
-]
+# TODO: Make this a tuple
+NETWORK_TYPE = {
+    0: "Residential/Private",
+    1: "Untrusted/Unknown Public Hotspot",
+    2: "Trusted Public Network",
+    3: "VPN/Proxy",
+    4: "Unknown",
+}
 
-def calculate_risk(latitude, longitude, wifi_ssid, threats_data):
+def calculate_risk(latitude, longitude, ip, threats_data):
     """
     Calculate weighted risk score based on multiple factors.
     
@@ -31,20 +31,16 @@ def calculate_risk(latitude, longitude, wifi_ssid, threats_data):
     risk_factors = []
     
     # Factor 1: Location-based risk (+2 points if not at home)
-    home_lat = float(os.getenv('HOME_LAT', 40.7128))
-    home_lon = float(os.getenv('HOME_LON', -74.0060))
-    
-    distance_from_home = calculate_distance(latitude, longitude, home_lat, home_lon)
-    
-    # Consider "home" if within 0.5 km radius
-    if distance_from_home > 0.5:
+    isAtSafeLocation, distanceFromSafeLocation = check_location_is_whitelisted(latitude, longitude)
+    if not isAtSafeLocation:
         risk_score += 2
-        risk_factors.append(f"Location: {distance_from_home:.1f}km from home")
+        risk_factors.append(f"Location: {distanceFromSafeLocation:.1f}km from the closest safe location")
     
     # Factor 2: WiFi Security risk (+4 points for unsafe networks)
-    if wifi_ssid and wifi_ssid not in SAFE_SSIDS:
+    network_type = get_network_info(ip)
+    if network_type not in [0, 2, 3]:
         risk_score += 4
-        risk_factors.append(f"Unsafe WiFi: '{wifi_ssid}' not in safe zone list")
+        risk_factors.append(f"Unsafe WiFi: 'You are on {NETWORK_TYPE[network_type]}")
     
     # Factor 3: Local cyber threat intelligence (+5 points if threats present)
     if threats_data and threats_data.get('threat_detected'):
