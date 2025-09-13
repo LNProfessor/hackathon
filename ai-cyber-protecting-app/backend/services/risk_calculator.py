@@ -14,39 +14,41 @@ NETWORK_TYPE = {
     4: "Unknown",
 }
 
-def calculate_risk(latitude, longitude, ip, threats_data):
+def calculate_risk(latitude, longitude, ip, num_threats):
     """
     Calculate weighted risk score based on multiple factors.
     
     Args:
         latitude (float): User's current latitude
         longitude (float): User's current longitude
-        wifi_ssid (str): Connected WiFi network SSID
-        threats_data (dict): Threat intelligence for the user's location
+        ip (str): Connected WiFi network SSID
+        num_threats (int): Threat intelligence for the user's location
     
     Returns:
         dict: Contains risk_score, zone, and risk_factors
     """
+    print("a")
     risk_score = 0
     risk_factors = []
-    
+    print("a")
     # Factor 1: Location-based risk (+2 points if not at home)
     isAtSafeLocation, distanceFromSafeLocation = check_location_is_whitelisted(latitude, longitude)
+    print("a")
     if not isAtSafeLocation:
         risk_score += 2
         risk_factors.append(f"Location: {distanceFromSafeLocation:.1f}km from the closest safe location")
-    
+    print("b")
     # Factor 2: WiFi Security risk (+4 points for unsafe networks)
     network_type = get_network_info(ip)
     if network_type not in [0, 2, 3]:
         risk_score += 4
         risk_factors.append(f"Unsafe WiFi: 'You are on {NETWORK_TYPE[network_type]}")
-    
+    print("c")
     # Factor 3: Local cyber threat intelligence (+5 points if threats present)
-    if threats_data and threats_data.get('threat_detected'):
-        risk_score += 5
-        threat_type = threats_data.get('type', 'Unknown threat')
-        risk_factors.append(f"Active threat: {threat_type} reported in area")
+    # if threats_data and threats_data.get('threat_detected'):
+    #     risk_score += 5
+    #     threat_type = threats_data.get('type', 'Unknown threat')
+    #     risk_factors.append(f"Active threat: {threat_type} reported in area")
     
     # Determine security zone based on total score
     if risk_score == 0:
@@ -55,7 +57,7 @@ def calculate_risk(latitude, longitude, ip, threats_data):
         zone = "Yellow"
     else:  # 6+ points
         zone = "Red"
-    
+    print("d")
     return {
         'risk_score': risk_score,
         'zone': zone,

@@ -36,7 +36,7 @@ def get_network_info(ip_address: str) -> int:
         print(f"Could not get network info for {ip_address}: {e}")
         return NETWORK_TYPE["Unknown"]
     
-def get_user_ip(request):
+def get_user_ip(request) -> str:
     """
     Gets the real user IP address, accounting for reverse proxies.
     """

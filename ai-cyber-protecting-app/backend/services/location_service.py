@@ -10,7 +10,7 @@ from requests.structures import CaseInsensitiveDict
 
 import math
 
-WHITELISTED_LOCATIONS_FILENAME = '/database/whitelisted_locations'
+WHITELISTED_LOCATIONS_FILENAME = '../database/whitelisted_locations'
 
 def get_address(latitude, longitude):
     load_dotenv()
