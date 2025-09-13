@@ -34,7 +34,7 @@ def get_address(latitude, longitude):
 
     return address
 
-def calculate_distance(lat1, lon1, lat2, lon2):
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float):
     """
     Calculate the distance between two points on Earth using the Haversine formula.
     
@@ -73,15 +73,18 @@ def get_location_context(latitude, longitude):
     """
     return get_address(latitude, longitude)
 
-def check_location_is_whitelisted(user_latitude, user_longitude):
+def check_location_is_whitelisted(user_latitude: float, user_longitude: float):
+    
     distance_from_closest_safe_location = math.inf
-
+    
     with open(WHITELISTED_LOCATIONS_FILENAME, 'r') as file:
+        
         for line in file:
             
-            safe_latitude, safe_longitude = line.split("|")
+            safe_latitude, safe_longitude = map(float, line.split("|"))
+            
             distance_from_safe_location = calculate_distance(user_latitude, user_longitude, safe_latitude, safe_longitude)
-    
+            
             # Consider "home" if within 0.5 km radius
             if distance_from_safe_location <= 0.5:
                 return True, distance_from_safe_location # User is at a safe location :)

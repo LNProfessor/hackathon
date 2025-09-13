@@ -49,23 +49,17 @@ def check_security():
         
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
-        print(i)
-        i+=1
 
         # Extract required fields
         latitude = data.get('latitude')
         longitude = data.get('longitude')
         ip = get_user_ip(request)
-        print(i)
-        i+=1
 
         # Validate required fields
         if latitude is None or longitude is None:
             return jsonify({
                 "error": "Missing required fields: latitude and longitude"
             }), 400
-        print(i)
-        i+=1
 
         try:
             latitude = float(latitude)
@@ -74,39 +68,27 @@ def check_security():
             return jsonify({
                 "error": "Invalid latitude or longitude format"
             }), 400
-        print(i)
-        i+=1
 
         # Step 1: Get location context
         location_context = get_location_context(latitude, longitude)
         zipcode = location_context['postcode']
-        print(i)
-        i+=1
 
         # Step 2: Get threat intelligence for the area
         num_threats = get_cyber_threats_by_zip(zipcode)
-        print(i)
-        i+=1
 
         # Step 3: Calculate risk score using weighted scoring engine
         risk_assessment = calculate_risk(latitude, longitude, ip, num_threats)
 
         print(risk_assessment)
-        print(i)
-        i+=1
 
         risk_score = risk_assessment['risk_score']
         zone = risk_assessment['zone']
         risk_factors = risk_assessment['risk_factors']
-        print(i)
-        i+=1
 
         # Step 4: Generate recommendations (AI-powered or static fallback)
         recommendations_data = generate_recommendations(
             zone, risk_factors, location_context, num_threats
         )
-        print(i)
-        i+=1
 
         reason = recommendations_data['reason']
         recommendations = recommendations_data['recommendations']

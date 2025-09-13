@@ -27,23 +27,23 @@ def calculate_risk(latitude, longitude, ip, num_threats):
     Returns:
         dict: Contains risk_score, zone, and risk_factors
     """
-    print("a")
+    
     risk_score = 0
     risk_factors = []
-    print("a")
+    
     # Factor 1: Location-based risk (+2 points if not at home)
     isAtSafeLocation, distanceFromSafeLocation = check_location_is_whitelisted(latitude, longitude)
-    print("a")
+    
     if not isAtSafeLocation:
         risk_score += 2
         risk_factors.append(f"Location: {distanceFromSafeLocation:.1f}km from the closest safe location")
-    print("b")
+    
     # Factor 2: WiFi Security risk (+4 points for unsafe networks)
     network_type = get_network_info(ip)
     if network_type not in [0, 2, 3]:
         risk_score += 4
         risk_factors.append(f"Unsafe WiFi: 'You are on {NETWORK_TYPE[network_type]}")
-    print("c")
+    
     # Factor 3: Local cyber threat intelligence (+5 points if threats present)
     # if threats_data and threats_data.get('threat_detected'):
     #     risk_score += 5
@@ -57,7 +57,7 @@ def calculate_risk(latitude, longitude, ip, num_threats):
         zone = "Yellow"
     else:  # 6+ points
         zone = "Red"
-    print("d")
+    
     return {
         'risk_score': risk_score,
         'zone': zone,

@@ -2,20 +2,35 @@
 LLM Service for AI Cyber Protecting App
 Provides AI-powered security recommendations using OpenAI's API.
 """
+import json
 import os
-from openai import OpenAI
+import google.generativeai as genai
 
-# Initialize OpenAI client
-client = None
+# Global variable for the Gemini model, initialized to None
+model = None
 
-def initialize_openai_client():
-    """Initialize the OpenAI client with API key from environment."""
-    global client
+def initialize_gemini_client():
+    """
+    Initializes the Gemini client and model using the API key from environment variables.
+    
+    Returns:
+        bool: True if initialization is successful, False otherwise.
+    """
+    global model
     api_key = os.getenv('GEMINI_API_KEY')
-    if api_key:
-        client = OpenAI(api_key=api_key)
+    if not api_key:
+        print("Error: GEMINI_API_KEY environment variable not found.")
+        return False
+    
+    try:
+        genai.configure(api_key=api_key)
+        # Use a stable, recommended model
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        print("Gemini client initialized successfully.")
         return True
-    return False
+    except Exception as e:
+        print(f"Error initializing Gemini client: {e}")
+        return False
 
 def generate_recommendations(zone, risk_factors, location_context, threat_data):
     """
@@ -31,8 +46,8 @@ def generate_recommendations(zone, risk_factors, location_context, threat_data):
         dict: Contains AI-generated recommendations and reason
     """
     # Initialize OpenAI client if not already done
-    if client is None:
-        if not initialize_openai_client():
+    if model is None:
+        if not initialize_gemini_client():
             # Fallback to static recommendations if OpenAI is not available
             return generate_static_recommendations(zone, risk_factors, location_context, threat_data)
     
@@ -64,32 +79,19 @@ Format your response as JSON with two fields:
 - "recommendations": An array of specific action items
 """
         
-        # Call OpenAI API
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a cybersecurity expert assistant providing clear, actionable security advice."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=500,
-            temperature=0.7
-        )
-        
-        # Parse AI response
-        ai_content = response.choices[0].message.content.strip()
-        
-        # Try to parse as JSON, fallback to static if parsing fails
         try:
-            import json
-            ai_result = json.loads(ai_content)
+            response = model.generate_content(prompt)
+            json_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+            data = json.loads(json_text)
+            # Clean up the response to extract only the JSON part
             return {
-                "reason": ai_result.get("reason", generate_static_reason(zone, risk_factors, threat_data)),
-                "recommendations": ai_result.get("recommendations", generate_static_recommendations_list(zone)),
+                "reason": data.get("reason", generate_static_reason(zone, risk_factors, data)),
+                "recommendations": data.get("recommendations", generate_static_recommendations_list(zone)),
                 "ai_generated": True
             }
-        except json.JSONDecodeError:
-            # If AI response isn't valid JSON, extract manually or use static
-            return generate_static_recommendations(zone, risk_factors, location_context, threat_data)
+        except Exception as e:
+            print(f"Error calling Gemini API or parsing its response: {e}")
+            return None
     
     except Exception as e:
         print(f"OpenAI API error: {str(e)}")
