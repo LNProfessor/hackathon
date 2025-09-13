@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 font-sans;
+  }
+}
+
+@layer components {
+  .zone-green {
+    @apply bg-green-100 border-green-500 text-green-800;
+  }
+  
+  .zone-yellow {
+    @apply bg-yellow-100 border-yellow-500 text-yellow-800;
+  }
+  
+  .zone-red {
+    @apply bg-red-100 border-red-500 text-red-800;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl;
+  }
+  
+  .btn-loading {
+    @apply bg-blue-400 cursor-not-allowed;
+  }
+  
+  .security-card {
+    @apply bg-white rounded-xl shadow-lg border-2 p-6 transition-all duration-300;
+  }
+}
