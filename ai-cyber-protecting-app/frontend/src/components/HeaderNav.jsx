@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 const HeaderNav = ({ onGetStarted, onHomeClick }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,10 +23,28 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isHowItWorksOpen && !event.target.closest('.dropdown-container')) {
+        setIsHowItWorksOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isHowItWorksOpen]);
+
   const navLinks = [
     { href: '#home', label: 'Home' },
     { href: '#features', label: 'Features' },
     { href: '#how-it-works', label: 'How It Works' },
+  ];
+
+  const howItWorksSections = [
+    { id: 'location-detection', label: 'Location Analysis' },
+    { id: 'threat-assessment', label: 'Network Security' },
+    { id: 'risk-scoring', label: 'Threat Intelligence' },
   ];
 
   const handleLogoClick = () => {
@@ -53,6 +72,15 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
       document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
     } else if (href === '#how-it-works') {
       document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Function to scroll to specific sections within How It Works
+  const scrollToSection = (sectionId) => {
+    setIsMobileMenuOpen(false);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -100,19 +128,62 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => (
-              <button
-                key={link.href}
-                onClick={() => handleNavLinkClick(link.href)}
-                className="
-                  text-commuter-muted hover:text-commuter-text 
-                  transition-colors duration-200 ease-out
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
-                  focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
-                  rounded-md px-2 py-1
-                "
-              >
-                {link.label}
-              </button>
+              <div key={link.href} className="relative">
+                {link.href === '#how-it-works' ? (
+                  <div className="relative dropdown-container">
+                    <button
+                      onClick={() => setIsHowItWorksOpen(!isHowItWorksOpen)}
+                      className="
+                        text-commuter-muted hover:text-commuter-text 
+                        transition-colors duration-200 ease-out
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                        focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                        rounded-md px-2 py-1 flex items-center
+                      "
+                    >
+                      {link.label}
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {isHowItWorksOpen && (
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-commuter-card/95 backdrop-blur-xl border border-commuter-surface/30 rounded-xl shadow-2xl z-50">
+                        <div className="py-2">
+                          {howItWorksSections.map((section) => (
+                            <button
+                              key={section.id}
+                              onClick={() => scrollToSection(section.id)}
+                              className="
+                                w-full text-left px-4 py-3 text-sm text-commuter-text hover:text-commuter-primary
+                                hover:bg-commuter-surface/50 transition-colors duration-200 ease-out
+                                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                                focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                              "
+                            >
+                              {section.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleNavLinkClick(link.href)}
+                    className="
+                      text-commuter-muted hover:text-commuter-text 
+                      transition-colors duration-200 ease-out
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                      focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                      rounded-md px-2 py-1
+                    "
+                  >
+                    {link.label}
+                  </button>
+                )}
+              </div>
             ))}
           </nav>
 
@@ -155,19 +226,54 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
           <div className="md:hidden border-t border-commuter-surface bg-commuter-surface/95 backdrop-blur-md">
             <div className="px-6 py-4 space-y-4">
               {navLinks.map((link) => (
-                <button
-                  key={link.href}
-                  onClick={() => handleNavLinkClick(link.href)}
-                  className="
-                    block text-commuter-muted hover:text-commuter-text 
-                    transition-colors duration-200 ease-out
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
-                    focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
-                    rounded-md px-3 py-2 text-lg font-medium w-full text-left
-                  "
-                >
-                  {link.label}
-                </button>
+                <div key={link.href}>
+                  {link.href === '#how-it-works' ? (
+                    <div>
+                      <button
+                        onClick={() => handleNavLinkClick(link.href)}
+                        className="
+                          block text-commuter-muted hover:text-commuter-text 
+                          transition-colors duration-200 ease-out
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                          focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                          rounded-md px-3 py-2 text-lg font-medium w-full text-left
+                        "
+                      >
+                        {link.label}
+                      </button>
+                      <div className="ml-4 mt-2 space-y-2">
+                        {howItWorksSections.map((section) => (
+                          <button
+                            key={section.id}
+                            onClick={() => scrollToSection(section.id)}
+                            className="
+                              block text-commuter-muted hover:text-commuter-primary 
+                              transition-colors duration-200 ease-out
+                              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                              focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                              rounded-md px-3 py-2 text-sm w-full text-left
+                            "
+                          >
+                            {section.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleNavLinkClick(link.href)}
+                      className="
+                        block text-commuter-muted hover:text-commuter-text 
+                        transition-colors duration-200 ease-out
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                        focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                        rounded-md px-3 py-2 text-lg font-medium w-full text-left
+                      "
+                    >
+                      {link.label}
+                    </button>
+                  )}
+                </div>
               ))}
               
               {/* Mobile CTA Button */}

@@ -11,7 +11,7 @@ import React from 'react';
 const Footer = () => {
 
   return (
-    <footer className="border-t border-commuter-surface bg-commuter-bg">
+    <footer className="border-t border-commuter-surface/20 bg-transparent backdrop-blur-sm">
       <div className="max-w-commuter mx-auto px-6 lg:px-8 py-16">
         
         {/* Brand section */}

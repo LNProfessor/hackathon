@@ -89,7 +89,7 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-transparent">
       {/* Vanta.js Globe Background */}
       <GlobeBackground />
       
@@ -106,7 +106,7 @@ function App() {
         />
 
         {/* Main content */}
-        <main>
+        <main className="bg-transparent">
         {/* Hero section */}
         {!securityStatus && !error && (
           <div id="hero">

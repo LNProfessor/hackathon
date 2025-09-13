@@ -52,6 +52,7 @@
   .content-layer {
     position: relative;
     z-index: 1;
+    background: transparent;
   }
 
   /* Focus styles for accessibility */

@@ -132,7 +132,6 @@ const Hero = ({ onCheckSecurity, isLoading }) => {
                 bg-commuter-primary hover:bg-commuter-primary-600 
                 text-commuter-bg font-semibold rounded-xl
                 transition-all duration-200 ease-out
-                hover:shadow-glow-primary focus-visible:shadow-glow-primary
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
                 focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
                 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed
@@ -158,14 +157,19 @@ const Hero = ({ onCheckSecurity, isLoading }) => {
             </button>
 
             {/* Secondary CTA */}
-            <button className="
-              inline-flex items-center px-6 py-4 
-              text-commuter-text hover:text-commuter-primary
-              font-medium transition-colors duration-200 ease-out
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
-              focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
-              rounded-xl
-            ">
+            <button 
+              onClick={() => {
+                document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="
+                inline-flex items-center px-6 py-4 
+                text-commuter-text hover:text-commuter-primary
+                font-medium transition-colors duration-200 ease-out
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                rounded-xl
+              "
+            >
               How it works
               <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
