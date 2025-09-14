@@ -4,6 +4,7 @@ Provides AI-powered security recommendations using OpenAI's API.
 """
 import json
 import os
+from datetime import datetime
 import google.generativeai as genai
 
 # Global variable for the Gemini model, initialized to None
@@ -32,71 +33,69 @@ def initialize_gemini_client():
         print(f"Error initializing Gemini client: {e}")
         return False
 
-def generate_recommendations(zone, risk_factors, location_context, threat_data):
+def suggest_safe_locations(latitude: float, longitude: float) -> dict:
     """
-    Generate AI-powered security recommendations based on risk assessment.
-    
+    Finds nearby safe locations with good Wi-Fi using the Gemini API.
+
     Args:
-        zone (str): Security zone (Green, Yellow, Red)
-        risk_factors (list): List of identified risk factors
-        location_context (dict): Location information
-        threat_data (dict): Threat intelligence data
-    
+        lat (float): The user's current latitude.
+        lon (float): The user's current longitude.
+
     Returns:
-        dict: Contains AI-generated recommendations and reason
+        dict: A dictionary containing a list of suggested locations or an error.
     """
-    # Initialize OpenAI client if not already done
-    if model is None:
+
+    global model
+    if not model:
         if not initialize_gemini_client():
-            # Fallback to static recommendations if OpenAI is not available
-            return generate_static_recommendations(zone, risk_factors, location_context, threat_data)
-    
+            return {"error": "LLM client is not initialized."}
+
+    # Context provided by the user
+    current_time = datetime.now()
+
+    prompt = f"""
+    Act as a local security and logistics expert. The user is currently at latitude {latitude} and longitude {longitude}.
+    The current time is {current_time}.
+    Your task is to identify 3-4 nearby public locations that are currently open and, importantly, known to be safe and have reliable, free Wi-Fi connections (e.g., well-known cafes, public libraries, large retail stores).
+
+    For each location, provide the following details in a JSON object.
+    The root of the JSON object must be a key "suggestedLocations" which contains a list of location dictionaries.
+    Each dictionary in the list must have these exact keys:
+    - "Name": The name of the business or place.
+    - "Distance": A realistic, estimated distance in miles from the user's coordinates (e.g., "0.5 miles").
+    - "Safety Level": Your expert assessment of the location's general safety on a scale from 1/10 to 10/10.
+    - "Google Map Link": A plausible, mock Google Maps URL for the location.
+
+    IMPORTANT: Sort the final list of locations primarily by "Safety Level" in descending order (safest first), and secondarily by "Distance" in ascending order (closest first).
+
+    Example Format:
+    {{
+      "suggestedLocations": [
+        {{
+          "Name": "Starbucks",
+          "Distance": "0.8 miles",
+          "Safety Level": "8/10",
+          "Google Map Link": "https://maps.google.com/maps?q=Starbucks+near+Lynchburg+VA"
+        }},
+        {{
+          "Name": "Lynchburg Public Library",
+          "Distance": "1.2 miles",
+          "Safety Level": "8/10",
+          "Google Map Link": "https://maps.google.com/maps?q=Lynchburg+Public+Library"
+        }}
+      ]
+    }}
+    Generate the JSON object now for the user's location.
+    """
     try:
-        # Prepare context for AI
-        city = location_context.get('city', 'Unknown location')
-        risk_summary = ', '.join(risk_factors) if risk_factors else 'No specific risks detected'
-        threat_summary = threat_data.get('description', 'No active threats') if threat_data and threat_data.get('threat_detected') else 'No active threats'
-        
-        # Create prompt for AI
-        prompt = f"""
-You are a cybersecurity expert providing personalized security recommendations. 
-
-Current Situation:
-- Security Zone: {zone}
-- Location: {city}
-- Risk Factors: {risk_summary}
-- Local Threats: {threat_summary}
-
-Please provide:
-1. A clear, concise reason why the user is in this security zone
-2. 3-5 specific, actionable recommendations appropriate for their current risk level
-
-Keep recommendations practical and immediately actionable. Use a professional but accessible tone.
-For Red zones, emphasize urgency. For Yellow zones, focus on prevention. For Green zones, maintain good practices.
-
-Format your response as JSON with two fields:
-- "reason": A single sentence explaining why they're in this zone
-- "recommendations": An array of specific action items
-"""
-        
-        try:
-            response = model.generate_content(prompt)
-            json_text = response.text.strip().replace("```json", "").replace("```", "").strip()
-            data = json.loads(json_text)
-            # Clean up the response to extract only the JSON part
-            return {
-                "reason": data.get("reason", generate_static_reason(zone, risk_factors, data)),
-                "recommendations": data.get("recommendations", generate_static_recommendations_list(zone)),
-                "ai_generated": True
-            }
-        except Exception as e:
-            print(f"Error calling Gemini API or parsing its response: {e}")
-            return None
-    
+        response = model.generate_content(prompt)
+        json_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+        locations_data = json.loads(json_text)
+        print("Successfully generated safe locations from Gemini.")
+        return locations_data
     except Exception as e:
-        print(f"OpenAI API error: {str(e)}")
-        # Fallback to static recommendations
-        return generate_static_recommendations(zone, risk_factors, location_context, threat_data)
+        print(f"Error calling Gemini API for safe locations: {e}")
+        return {"error": "Failed to generate safe location data."}
 
 def generate_static_recommendations(zone, risk_factors, location_context, threat_data):
     """
@@ -160,20 +159,3 @@ def generate_static_recommendations_list(zone):
             "Keep all devices locked when not actively in use",
             "Monitor your accounts for suspicious activity"
         ]
-
-def test_openai_connection():
-    """Test if OpenAI API connection is working."""
-    try:
-        if initialize_openai_client():
-            # Make a simple test request
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": "Test connection - respond with 'OK'"}],
-                max_tokens=10
-            )
-            return True
-    except Exception as e:
-        print(f"OpenAI connection test failed: {str(e)}")
-        return False
-    
-    return False

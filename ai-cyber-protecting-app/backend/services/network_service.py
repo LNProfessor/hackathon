@@ -1,11 +1,11 @@
 import requests
 
 NETWORK_TYPE = {
-    "Residential/Private": 0,
-    "Untrusted/Unknown Public Hotspot": 1,
+    "Residential/Private Network": 0,
+    "Untrusted/Unknown Public Network": 1,
     "Trusted Public Network": 2,
-    "VPN/Proxy": 3,
-    "Unknown": 4,
+    "VPN/Proxy Network": 3,
+    "Unknown Network": 4,
 }
 
 def get_network_info(ip_address: str) -> int:

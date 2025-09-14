@@ -1,0 +1,50 @@
+{
+    "score": 2,
+    "zone": "Yellow",
+    "reasons": [
+        ["Bad", "User is 50km from home."],
+        ["Good", "User is on Trusted Public Network."],
+        ["Bad", "There are 3 cyber threats reported in the user's Zipcode (24515)."]
+    ],
+    "actions": [
+        "Turn on VPN",
+        "Activate 2-Factor Authentication",
+        "Find a new location"
+    ],
+    "suggestedLocations": [
+        {
+            "Name": "Starbucks",
+            "Distance": "1km",
+            "Safety Level": "8/10",
+            "Google Map Link": "google.com/sadfacdsacds"
+        },
+        {
+            "Name": "Target",
+            "Distance": "2km",
+            "Safety Level": "7/10",
+            "Google Map Link": "google.com/kyutkuy"
+        }
+    ]
+}
+
+/* In Reasons, if the 1st reason (far from home) is "Bad", then the 1st action will be "turn on VPN". Otherwise, if is "Good", the 1st action will be empty "".
+If EITHER the 2nd (untrusted network) or 3rd (local cyber threats) reason are "Bad", then 2nd (activate 2FA) AND 3rd (find new location) actions will appear and are not "". Otherwise, they are both "".
+If EITHER the 2nd (untrusted network) or 3rd (local cyber threats) reason are "Bad", then the suggestedLocations will be a non-empty list. Otherwise, it will be empty list.*/
+
+POST /api/configure-user
+
+{
+    "homeAddresses": [
+        "345|Hello Str.|Lynchburg|VA|24515",
+        "11|HI Str.|Tampa|FL|12222"
+    ],
+    "2faEmail": "example@example.com"
+}
+
+POST /api/set-2fa-email (Should only be able to set one email)
+
+{
+    [
+        "example@example.com"
+    ]
+}

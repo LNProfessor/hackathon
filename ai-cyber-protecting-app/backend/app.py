@@ -2,6 +2,7 @@
 AI Cyber Protecting App - Backend API
 Flask application that provides security risk assessment based on location and threat intelligence.
 """
+import json
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -10,10 +11,11 @@ from dotenv import load_dotenv
 # Import services
 from services.risk_calculator import calculate_risk
 from services.location_service import get_location_context
-from services.threat_service import get_cyber_threats_by_zip
 from services.email_service_simple import send_red_alert_email
-from services.llm_service import generate_recommendations, test_openai_connection
+from services.llm_service import suggest_safe_locations
 from services.network_service import get_user_ip
+
+WHITELISTED_LOCATIONS_FILENAME = '../database/whitelisted_locations'
 
 # Load environment variables
 load_dotenv()
@@ -73,60 +75,14 @@ def check_security():
         location_context = get_location_context(latitude, longitude)
         zipcode = location_context['postcode']
 
-        # Step 2: Get threat intelligence for the area
-        num_threats = get_cyber_threats_by_zip(zipcode)
+        # Step 2: Calculate risk score using weighted scoring engine
+        risk_assessment = calculate_risk(latitude, longitude, ip, zipcode)
 
-        # Step 3: Calculate risk score using weighted scoring engine
-        risk_assessment = calculate_risk(latitude, longitude, ip, num_threats)
-
-        print(risk_assessment)
-
-        risk_score = risk_assessment['risk_score']
-        zone = risk_assessment['zone']
-        risk_factors = risk_assessment['risk_factors']
-
-        # Step 4: Generate recommendations (AI-powered or static fallback)
-        recommendations_data = generate_recommendations(
-            zone, risk_factors, location_context, num_threats
-        )
-
-        reason = recommendations_data['reason']
-        recommendations = recommendations_data['recommendations']
+        # Step 3: Generate recommendations (AI-powered or static fallback)
+        # suggested_locations = suggest_safe_locations(latitude, longitude)
+        # risk_assessment["suggestedLocations"] = suggested_locations["suggestedLocations"]
         
-        # Step 5: Handle Red Zone alert email
-        email_sent = False
-        security_code = None
-        
-        if zone == "Red":
-            email_result = send_red_alert_email(location_context, risk_factors)
-            email_sent = email_result['email_sent']
-            security_code = email_result.get('security_code')
-        
-        # Step 6: Prepare response
-        response_data = {
-            "zone": zone,
-            "score": risk_score,
-            "reason": reason,
-            "recommendations": recommendations,
-            "emailSent": email_sent,
-            "location": {
-                "zipcode": zipcode,
-                "coordinates": {
-                    "latitude": latitude,
-                    "longitude": longitude
-                }
-            },
-            "threatInfo": {
-                "detected": num_threats,
-            },
-            "riskFactors": risk_factors
-        }
-        
-        # Add security code to response if email was sent
-        if security_code:
-            response_data["securityCode"] = security_code
-        
-        return jsonify(response_data)
+        return jsonify(risk_assessment)
     
     except Exception as e:
         # Log error and return generic error response
@@ -135,6 +91,15 @@ def check_security():
             "error": "Internal server error occurred during security check",
             "details": str(e) if app.debug else None
         }), 500
+    
+@app.route('/api/configure-user', methods=['POST'])
+def configure_user():
+    try:
+        return jsonify({"status": "success", "message": "Configuration saved."}), 200
+
+    except Exception as e:
+        print(f"An error occurred in /api/configure-user: {e}")
+        return jsonify({"error": "An internal server error occurred."}), 200
 
 # @app.route('/api/test-connection', methods=['GET'])
 # def test_connection():
@@ -193,7 +158,6 @@ if __name__ == '__main__':
     print("=" * 60)
     print(f"Debug Mode: {debug_mode}")
     print(f"Port: {port}")
-    print(f"OpenAI Available: {'Yes' if test_openai_connection() else 'No (using static recommendations)'}")
     print("=" * 60)
     
     # Run the Flask application

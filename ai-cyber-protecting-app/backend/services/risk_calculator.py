@@ -4,17 +4,18 @@ Implements a weighted risk scoring system based on location, WiFi, and threat in
 """
 from services.location_service import check_location_is_whitelisted
 from services.network_service import get_network_info
+from services.threat_service import get_cyber_threats_by_zip
 
 # TODO: Make this a tuple
 NETWORK_TYPE = {
-    0: "Residential/Private",
-    1: "Untrusted/Unknown Public Hotspot",
+    0: "Residential/Private Network",
+    1: "Untrusted/Unknown Public Network",
     2: "Trusted Public Network",
-    3: "VPN/Proxy",
-    4: "Unknown",
+    3: "VPN/Proxy Network",
+    4: "Unknown Network",
 }
 
-def calculate_risk(latitude, longitude, ip, num_threats):
+def calculate_risk(latitude, longitude, ip, zipcode):
     """
     Calculate weighted risk score based on multiple factors.
     
@@ -22,33 +23,47 @@ def calculate_risk(latitude, longitude, ip, num_threats):
         latitude (float): User's current latitude
         longitude (float): User's current longitude
         ip (str): Connected WiFi network SSID
-        num_threats (int): Threat intelligence for the user's location
+        zipcode (int): Threat intelligence for the user's location
     
     Returns:
         dict: Contains risk_score, zone, and risk_factors
     """
     
     risk_score = 0
-    risk_factors = []
+    risk_reasons = []
+    risk_actions = []
     
     # Factor 1: Location-based risk (+2 points if not at home)
     isAtSafeLocation, distanceFromSafeLocation = check_location_is_whitelisted(latitude, longitude)
-    
-    if not isAtSafeLocation:
+    if isAtSafeLocation:
+        risk_reasons.append(["Good", f"Location: You are {distanceFromSafeLocation:.1f}km from the closest safe location"])
+        risk_actions.append("")
+    else:
         risk_score += 2
-        risk_factors.append(f"Location: {distanceFromSafeLocation:.1f}km from the closest safe location")
+        risk_reasons.append(["Bad", f"Location: {distanceFromSafeLocation:.1f}km from the closest safe location"])
+        risk_actions.append("Turn on the VPN")
     
     # Factor 2: WiFi Security risk (+4 points for unsafe networks)
     network_type = get_network_info(ip)
-    if network_type not in [0, 2, 3]:
+    if network_type in [1, 4]:
+        risk_reasons.append(["Good", f"Network: 'You are on {NETWORK_TYPE[network_type]}"])
+        risk_actions.append("")
+    else:
         risk_score += 4
-        risk_factors.append(f"Unsafe WiFi: 'You are on {NETWORK_TYPE[network_type]}")
+        risk_reasons.append(["Bad", f"Network: 'You are on {NETWORK_TYPE[network_type]}"])
+        risk_actions.append("Activate 2-Factor Authentication for Your Laptop")
+        risk_actions.append("Find a new work location")
     
-    # Factor 3: Local cyber threat intelligence (+5 points if threats present)
-    # if threats_data and threats_data.get('threat_detected'):
+    # # Factor 3: Local cyber threat intelligence (+5 points if threats present)
+    # num_threats = get_cyber_threats_by_zip(zipcode)
+    # if num_threats == 0:
+    #     risk_reasons.append(["Good", f"Threats: 'There are {num_threats} active cyber threats in your area."])
+    # else:
     #     risk_score += 5
-    #     threat_type = threats_data.get('type', 'Unknown threat')
-    #     risk_factors.append(f"Active threat: {threat_type} reported in area")
+    #     risk_reasons.append(["Bad", f"Threats: 'There are {num_threats} active cyber threats in your area."])
+    #     if len(risk_actions) != 3:
+    #         risk_actions.append("Activate 2-Factor Authentication for Your Laptop")
+    #         risk_actions.append("Find a new work location")
     
     # Determine security zone based on total score
     if risk_score == 0:
@@ -59,19 +74,11 @@ def calculate_risk(latitude, longitude, ip, num_threats):
         zone = "Red"
     
     return {
-        'risk_score': risk_score,
+        'score': risk_score,
         'zone': zone,
-        'risk_factors': risk_factors
+        'reasons': risk_reasons,
+        'actions': risk_actions,
     }
-
-def get_zone_message(zone):
-    """Get the appropriate message for each security zone."""
-    messages = {
-        "Green": "You're in a Green Zone. Your current environment appears secure.",
-        "Yellow": "You're in a Yellow Zone. This is a slightly elevated risk environment. Stay aware of your surroundings and ensure your devices are locked when not in use.",
-        "Red": "Warning: You are in a Red Zone. Your environment poses a significant digital and physical security risk."
-    }
-    return messages.get(zone, "Unknown security zone.")
 
 def get_base_recommendations(zone):
     """Get base security recommendations for each zone."""
