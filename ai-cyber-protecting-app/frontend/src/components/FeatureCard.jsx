@@ -13,7 +13,8 @@ const FeatureCard = ({
   title, 
   description, 
   delay = 0,
-  glowColor = 'primary'
+  glowColor = 'primary',
+  onClick
 }) => {
   const cardRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -96,6 +97,7 @@ const FeatureCard = ({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={onClick}
     >
       {/* Animated gradient border */}
       <div className={`
@@ -188,7 +190,7 @@ const FeatureCard = ({
 /**
  * FeatureGrid - Container for feature cards with staggered animations
  */
-export const FeatureGrid = ({ features }) => {
+export const FeatureGrid = ({ features, onFeatureClick }) => {
   return (
     <section id="features" className="py-24">
       <div className="max-w-commuter mx-auto px-6 lg:px-8">
@@ -214,6 +216,7 @@ export const FeatureGrid = ({ features }) => {
               description={feature.description}
               delay={index * 150}
               glowColor={['primary', 'violet', 'magenta'][index % 3]}
+              onClick={() => onFeatureClick && onFeatureClick(feature.title)}
             />
           ))}
         </div>

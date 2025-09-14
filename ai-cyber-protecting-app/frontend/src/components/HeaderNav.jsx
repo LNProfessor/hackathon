@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
  * - Primary CTA button
  * - Keyboard accessible with focus management
  */
-const HeaderNav = ({ onGetStarted, onHomeClick }) => {
+const HeaderNav = ({ onGetStarted, onHomeClick, onConfigClick }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
@@ -48,12 +48,12 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
   ];
 
   const handleLogoClick = () => {
+    // Always call onHomeClick to reset app state
     if (onHomeClick) {
       onHomeClick();
-    } else {
-      // Fallback to scrolling to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    // Always scroll to top regardless of app state
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     // Close mobile menu when logo is clicked
     setIsMobileMenuOpen(false);
   };
@@ -67,6 +67,10 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
     setIsMobileMenuOpen(false);
     // Scroll to the section
     if (href === '#home') {
+      // Reset app state and scroll to top
+      if (onHomeClick) {
+        onHomeClick();
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (href === '#features') {
       document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
@@ -108,7 +112,10 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
               hover:bg-commuter-surface/30
             "
           >
-            <div className="w-10 h-10 bg-commuter-card rounded-xl flex items-center justify-center p-1 group-hover:bg-commuter-primary/10 transition-colors">
+            <div 
+              className="bg-commuter-card border border-commuter-surface/20 rounded-xl flex items-center justify-center p-1 group-hover:bg-commuter-primary/10 group-hover:border-commuter-primary/30 transition-all duration-200"
+              style={{ width: '3.25rem', height: '3.25rem' }}
+            >
               <img 
                 src="/hackathon_logo.png" 
                 alt="Commuter: Cyber Travel Safety" 
@@ -149,7 +156,7 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
                     
                     {/* Dropdown Menu */}
                     {isHowItWorksOpen && (
-                      <div className="absolute top-full left-0 mt-2 w-48 bg-commuter-card/95 backdrop-blur-xl border border-commuter-surface/30 rounded-xl shadow-2xl z-50">
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-commuter-card border border-commuter-surface rounded-xl shadow-2xl z-50">
                         <div className="py-2">
                           {howItWorksSections.map((section) => (
                             <button
@@ -187,21 +194,44 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
             ))}
           </nav>
 
-          {/* CTA Button */}
-          <button
-            onClick={onGetStarted}
-            className="
-              bg-commuter-primary hover:bg-commuter-primary-600 
-              text-commuter-bg font-medium px-4 py-2 rounded-xl
-              transition-all duration-200 ease-out
-              hover:shadow-glow-primary focus-visible:shadow-glow-primary
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
-              focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
-              active:scale-98
-            "
-          >
-            Get Started
-          </button>
+          {/* Settings and CTA Buttons */}
+          <div className="hidden md:flex items-center space-x-3">
+            {/* Settings Button */}
+            <button
+              onClick={onConfigClick}
+              className="
+                w-10 h-10 bg-commuter-primary/20 hover:bg-commuter-primary/30 
+                border border-commuter-primary/30 rounded-full
+                flex items-center justify-center transition-colors duration-200
+                text-commuter-primary hover:text-commuter-primary
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+              "
+              title="User Configuration"
+            >
+              <img 
+                src="/settings-gear-svgrepo-com.svg" 
+                alt="Settings" 
+                className="w-9 h-9 opacity-80 hover:opacity-100 transition-opacity"
+              />
+            </button>
+
+            {/* CTA Button */}
+            <button
+              onClick={onGetStarted}
+              className="
+                bg-commuter-primary hover:bg-commuter-primary-600 
+                text-commuter-bg font-medium px-4 py-2 rounded-xl
+                transition-all duration-200 ease-out
+                hover:shadow-glow-primary focus-visible:shadow-glow-primary
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                active:scale-98
+              "
+            >
+              Get Started
+            </button>
+          </div>
 
           {/* Mobile menu button */}
           <button 
@@ -276,24 +306,51 @@ const HeaderNav = ({ onGetStarted, onHomeClick }) => {
                 </div>
               ))}
               
-              {/* Mobile CTA Button */}
-              <button
-                onClick={() => {
-                  onGetStarted();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="
-                  w-full bg-commuter-primary hover:bg-commuter-primary-600 
-                  text-commuter-bg font-medium py-3 px-4 rounded-xl
-                  transition-all duration-200 ease-out
-                  hover:shadow-glow-primary focus-visible:shadow-glow-primary
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
-                  focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
-                  active:scale-98 mt-4
-                "
-              >
-                Get Started
-              </button>
+              {/* Mobile Settings and CTA Buttons */}
+              <div className="mt-4 space-y-3">
+                {/* Mobile Settings Button */}
+                <button
+                  onClick={() => {
+                    onConfigClick();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="
+                    w-full bg-commuter-primary/20 hover:bg-commuter-primary/30 
+                    border border-commuter-primary/30 text-commuter-primary
+                    font-medium py-3 px-4 rounded-xl
+                    transition-all duration-200 ease-out
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                    focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                    flex items-center justify-center space-x-2
+                  "
+                >
+                  <img 
+                    src="/settings-gear-svgrepo-com.svg" 
+                    alt="Settings" 
+                    className="w-6 h-6 opacity-80"
+                  />
+                  <span>Settings</span>
+                </button>
+
+                {/* Mobile CTA Button */}
+                <button
+                  onClick={() => {
+                    onGetStarted();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="
+                    w-full bg-commuter-primary hover:bg-commuter-primary-600 
+                    text-commuter-bg font-medium py-3 px-4 rounded-xl
+                    transition-all duration-200 ease-out
+                    hover:shadow-glow-primary focus-visible:shadow-glow-primary
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
+                    focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
+                    active:scale-98
+                  "
+                >
+                  Get Started
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -64,7 +64,10 @@ const HowItWorks = () => {
 
   return (
     <section id="how-it-works" className="py-24 relative">
-      <div className="max-w-commuter mx-auto px-6 lg:px-8">
+      {/* Completely solid background overlay to prevent text blending */}
+      <div className="absolute inset-0 bg-commuter-bg opacity-100 z-0"></div>
+      
+      <div className="relative z-20 max-w-commuter mx-auto px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-commuter-text mb-6 tracking-tight">
@@ -85,7 +88,7 @@ const HowItWorks = () => {
               <div 
                 key={index} 
                 id={stepId}
-                className="bg-gradient-to-br from-commuter-card/90 to-commuter-surface/50 border border-commuter-surface/30 rounded-2xl p-8 backdrop-blur-xl shadow-2xl hover:shadow-glow-primary/20 transition-all duration-300"
+                className="bg-commuter-card border border-commuter-surface rounded-2xl p-8 shadow-2xl hover:shadow-glow-primary/20 transition-all duration-300 relative z-10"
               >
                 <h3 className="text-2xl font-bold text-commuter-text mb-4">
                   {step.title}
@@ -109,28 +112,6 @@ const HowItWorks = () => {
         </div>
 
 
-        {/* Call to Action */}
-        <div className="mt-16 text-center">
-          <div className="bg-gradient-to-br from-commuter-primary/10 to-commuter-violet/10 border border-commuter-primary/20 rounded-2xl p-8 backdrop-blur-xl">
-            <h3 className="text-2xl font-bold text-commuter-text mb-4">
-              Ready to Secure Your Journey?
-            </h3>
-            <p className="text-commuter-muted text-lg mb-6 max-w-2xl mx-auto">
-              Experience the power of AI-driven security analysis and protect yourself 
-              with real-time threat intelligence and personalized recommendations.
-            </p>
-            <button className="
-              bg-gradient-to-r from-commuter-primary to-commuter-violet 
-              hover:from-commuter-primary/90 hover:to-commuter-violet/90
-              text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 ease-out
-              shadow-glow-primary hover:shadow-glow-primary/80
-              border border-commuter-primary/20 hover:border-commuter-primary/40
-              backdrop-blur-sm
-            ">
-              Start Your Security Analysis
-            </button>
-          </div>
-        </div>
       </div>
     </section>
   );

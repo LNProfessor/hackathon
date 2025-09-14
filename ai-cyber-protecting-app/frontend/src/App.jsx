@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GlobeBackground from './components/GlobeBackground';
 import HeaderNav from './components/HeaderNav';
 import Hero from './components/Hero';
@@ -6,6 +6,7 @@ import { FeatureGrid } from './components/FeatureCard';
 import HowItWorks from './components/HowItWorks';
 import StatusDisplay from './components/StatusDisplay';
 import Footer from './components/Footer';
+import UserConfigModal from './components/UserConfigModal';
 
 // Backend API configuration
 const API_BASE_URL = 'http://localhost:5000';
@@ -14,8 +15,33 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [securityStatus, setSecurityStatus] = useState(null);
   const [error, setError] = useState(null);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [userConfig, setUserConfig] = useState({
+    homeAddresses: [],
+    "2faEmail": ""
+  });
 
-  const checkSecurity = async (latitude, longitude, wifiSSID) => {
+  // Set up global function for opening config modal from child components
+  useEffect(() => {
+    window.openConfigModal = () => setIsConfigModalOpen(true);
+    
+    // Load user config from localStorage on app start
+    const savedAddresses = localStorage.getItem('userHomeAddresses');
+    const savedEmail = localStorage.getItem('user2FAEmail');
+    
+    if (savedAddresses || savedEmail) {
+      setUserConfig({
+        homeAddresses: savedAddresses ? JSON.parse(savedAddresses) : [],
+        "2faEmail": savedEmail || ""
+      });
+    }
+
+    return () => {
+      delete window.openConfigModal;
+    };
+  }, []);
+
+  const checkSecurity = async (latitude, longitude, homeAddresses) => {
     setIsLoading(true);
     setError(null);
     setSecurityStatus(null);
@@ -29,7 +55,7 @@ function App() {
         body: JSON.stringify({
           latitude,
           longitude,
-          wifiSSID
+          homeAddresses
         }),
       });
 
@@ -69,6 +95,40 @@ function App() {
     setIsLoading(false);
   };
 
+  const handleConfigSave = (configData) => {
+    setUserConfig(configData);
+    // Dispatch custom event to notify all components about config changes
+    window.dispatchEvent(new CustomEvent('configurationUpdated', { detail: configData }));
+  };
+
+  const handleConfigModalClose = () => {
+    setIsConfigModalOpen(false);
+  };
+
+  // Handle feature card clicks to scroll to corresponding sections
+  const handleFeatureClick = (featureTitle) => {
+    let targetId = '';
+    
+    switch (featureTitle) {
+      case 'Location Analysis':
+        targetId = 'location-detection';
+        break;
+      case 'Network Security':
+        targetId = 'threat-assessment';
+        break;
+      case 'Threat Intelligence':
+        targetId = 'risk-scoring';
+        break;
+      default:
+        return;
+    }
+    
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   // Feature data for the grid
   const features = [
     {
@@ -103,10 +163,12 @@ function App() {
             setIsLoading(false);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
+          onConfigClick={() => setIsConfigModalOpen(true)}
         />
 
         {/* Main content */}
         <main className="bg-transparent">
+
         {/* Hero section */}
         {!securityStatus && !error && (
           <div id="hero">
@@ -119,7 +181,7 @@ function App() {
 
         {/* Feature grid */}
         {!securityStatus && !error && (
-          <FeatureGrid features={features} />
+          <FeatureGrid features={features} onFeatureClick={handleFeatureClick} />
         )}
 
         {/* How It Works section */}
@@ -165,6 +227,13 @@ function App() {
         {/* Footer */}
         <Footer />
       </div>
+
+      {/* User Configuration Modal */}
+      <UserConfigModal 
+        isOpen={isConfigModalOpen}
+        onClose={handleConfigModalClose}
+        onSave={handleConfigSave}
+      />
     </div>
   );
 }

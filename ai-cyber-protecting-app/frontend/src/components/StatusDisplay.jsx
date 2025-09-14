@@ -1,11 +1,91 @@
 import React from 'react';
 import StatusGlobeBackground from './StatusGlobeBackground';
 import SimpleMapComponent from './SimpleMapComponent';
+import LocationAnalysis from './LocationAnalysis';
 
 const StatusDisplay = ({ securityStatus, onNewAnalysis }) => {
   if (!securityStatus) return null;
 
-  const { zone, score, recommendations, location, actionsStatus } = securityStatus;
+  const { zone, score, recommendations, location, actionsStatus, reasons, actions, suggestedLocations, riskFactors } = securityStatus;
+  
+  // Create fallback location analysis data if not provided by backend
+  const createFallbackAnalysis = () => {
+    if (reasons && actions) {
+      // Backend provides new format
+      return { reasons, actions, suggestedLocations: suggestedLocations || [] };
+    }
+    
+    // Create fallback from legacy data
+    const fallbackReasons = [];
+    const fallbackActions = [];
+    const fallbackLocations = [];
+    
+    // Parse risk factors to create Good/Bad reasons
+    if (riskFactors && riskFactors.length > 0) {
+      riskFactors.forEach(factor => {
+        if (factor.includes("from the closest safe location")) {
+          const distance = factor.match(/(\d+\.?\d*)\s*km/)?.[1] || "50";
+          fallbackReasons.push(["Bad", `User is ${distance}km from home.`]);
+          fallbackActions.push("Turn on VPN");
+        } else if (factor.includes("Unsafe WiFi")) {
+          fallbackReasons.push(["Bad", "User is on Untrusted/Unknown Public Network."]);
+          if (!fallbackActions.includes("Activate 2-Factor Authentication")) {
+            fallbackActions.push("Activate 2-Factor Authentication");
+          }
+          if (!fallbackActions.includes("Find a new location")) {
+            fallbackActions.push("Find a new location");
+          }
+        } else if (factor.includes("Cyber threats")) {
+          const threats = factor.match(/(\d+)\s*cyber threats/)?.[1] || "3";
+          const zipcode = location?.zipcode || "unknown";
+          fallbackReasons.push(["Bad", `There are ${threats} cyber threats reported in the user's Zipcode (${zipcode}).`]);
+          if (!fallbackActions.includes("Activate 2-Factor Authentication")) {
+            fallbackActions.push("Activate 2-Factor Authentication");
+          }
+          if (!fallbackActions.includes("Find a new location")) {
+            fallbackActions.push("Find a new location");
+          }
+        }
+      });
+    }
+    
+    // Add suggested locations if location change is recommended
+    if (fallbackActions.includes("Find a new location")) {
+      fallbackLocations.push(
+        {
+          "Name": "Starbucks",
+          "Distance": "1km",
+          "Safety Level": "8/10",
+          "Google Map Link": "https://maps.google.com/search/starbucks+near+me"
+        },
+        {
+          "Name": "Target",
+          "Distance": "2km",
+          "Safety Level": "7/10",
+          "Google Map Link": "https://maps.google.com/search/target+near+me"
+        }
+      );
+    }
+    
+    // If no risk factors, create positive reasons based on zone
+    if (fallbackReasons.length === 0) {
+      if (zone === "Green") {
+        fallbackReasons.push(["Good", "User is in a secure location with no identified risks."]);
+      } else if (zone === "Yellow") {
+        fallbackReasons.push(["Bad", "User is in a moderately risky environment."]);
+      } else if (zone === "Red") {
+        fallbackReasons.push(["Bad", "User is in a high-risk environment."]);
+      }
+    }
+    
+    return {
+      reasons: fallbackReasons,
+      actions: fallbackActions,
+      suggestedLocations: fallbackLocations
+    };
+  };
+  
+  const analysisData = createFallbackAnalysis();
 
   // Zone-specific styling using design system tokens
   const zoneConfig = {
@@ -105,54 +185,9 @@ const StatusDisplay = ({ securityStatus, onNewAnalysis }) => {
               </div>
             </div>
 
-            {/* Actions List */}
-            <div className="bg-gradient-to-br from-commuter-card/90 to-commuter-surface/50 border border-commuter-surface/30 rounded-2xl p-6 backdrop-blur-xl shadow-2xl">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-commuter-primary/20 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-lg">⚡</span>
-                </div>
-                <h3 className="text-lg font-semibold text-commuter-text">Automatic Actions Taken</h3>
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                {recommendations.map((action, index) => {
-                  const actionDetail = actionsStatus?.actionDetails?.[action];
-                  const isCompleted = actionDetail?.status === 'completed';
-                  
-                  return (
-                    <div key={index} className="bg-gradient-to-r from-commuter-surface/30 to-commuter-surface/10 border border-commuter-surface/20 rounded-xl p-4 hover:shadow-lg transition-all duration-200">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 mr-4 mt-1">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            isCompleted ? 'bg-commuter-success/20' : 'bg-commuter-danger/20'
-                          }`}>
-                            <span className="text-sm">
-                              {isCompleted ? '✅' : '❌'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-commuter-text text-sm leading-relaxed font-medium">{action}</span>
-                            <span className={`text-xs font-medium ml-2 px-2 py-1 rounded-full ${
-                              isCompleted 
-                                ? 'text-commuter-success bg-commuter-success/10' 
-                                : 'text-commuter-danger bg-commuter-danger/10'
-                            }`}>
-                              {isCompleted ? 'COMPLETED' : 'FAILED'}
-                            </span>
-                          </div>
-                          {actionDetail?.details && (
-                            <p className="text-xs text-commuter-muted leading-relaxed">
-                              {actionDetail.details}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            {/* Location Analysis */}
+            <LocationAnalysis analysisData={analysisData} />
+
           </div>
         </div>
       </div>

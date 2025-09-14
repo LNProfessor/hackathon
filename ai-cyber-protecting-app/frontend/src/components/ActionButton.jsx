@@ -25,18 +25,33 @@ const ActionButton = ({ isLoading, onCheckSecurity }) => {
 
       const { latitude, longitude } = position.coords;
 
-      // Simulate WiFi SSID input (in a real app, this would be detected automatically)
-      const wifiSSID = prompt(
-        'For demo purposes, please enter your WiFi network name (SSID):\n\n' +
-        'Try these examples:\n' +
-        '• "Starbucks_WiFi" (safe zone)\n' +
-        '• "City_Airport_Free_WiFi" (unsafe)\n' +
-        '• "Home_Network" (safe zone)\n' +
-        '• Leave empty for no WiFi connection'
-      ) || '';
+      // Check if user has configured required settings
+      const savedAddresses = localStorage.getItem('userHomeAddresses');
+      const savedEmail = localStorage.getItem('user2FAEmail');
+      
+      let homeAddresses = [];
+      if (savedAddresses) {
+        try {
+          homeAddresses = JSON.parse(savedAddresses);
+        } catch (e) {
+          homeAddresses = [];
+        }
+      }
+
+      // Block service if email or home addresses not configured
+      if (!savedEmail || !homeAddresses || homeAddresses.length === 0) {
+        alert(
+          'Configuration Required\n\n' +
+          'To use the security analysis service, you must configure:\n' +
+          '• At least one home address\n' +
+          '• Your 2FA email address\n\n' +
+          'Please click the settings icon to configure these required settings.'
+        );
+        return;
+      }
 
       // Call the security check
-      await onCheckSecurity(latitude, longitude, wifiSSID);
+      await onCheckSecurity(latitude, longitude, homeAddresses);
 
     } catch (error) {
       console.error('Error getting location:', error);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * Hero - Main landing section with badge, headline, CTA, and trust row
@@ -11,9 +11,67 @@ import React, { useState } from 'react';
  */
 const Hero = ({ onCheckSecurity, isLoading }) => {
   const [progress, setProgress] = useState(0);
+  const [userConfig, setUserConfig] = useState({
+    hasEmail: false,
+    hasAddresses: false,
+    isConfigured: false
+  });
+  
+  // Check if user has required configuration
+  const checkUserConfiguration = () => {
+    const savedAddresses = localStorage.getItem('userHomeAddresses');
+    const savedEmail = localStorage.getItem('user2FAEmail');
+    
+    let homeAddresses = [];
+    if (savedAddresses) {
+      try {
+        homeAddresses = JSON.parse(savedAddresses);
+      } catch (e) {
+        homeAddresses = [];
+      }
+    }
+    
+    return {
+      hasEmail: !!savedEmail,
+      hasAddresses: homeAddresses.length > 0,
+      isConfigured: !!savedEmail && homeAddresses.length > 0
+    };
+  };
+
+  // Update configuration on component mount and when localStorage changes
+  useEffect(() => {
+    const updateConfig = () => {
+      const newConfig = checkUserConfiguration();
+      setUserConfig(newConfig);
+      console.log('Configuration updated:', newConfig); // Debug log
+    };
+
+    // Initial check
+    updateConfig();
+
+    // Listen for storage changes (when user saves configuration)
+    window.addEventListener('storage', updateConfig);
+    
+    // Also listen for a custom event we'll dispatch when config changes
+    window.addEventListener('configurationUpdated', updateConfig);
+
+    // Force update every few seconds to catch any missed updates (fallback)
+    const interval = setInterval(updateConfig, 2000);
+
+    return () => {
+      window.removeEventListener('storage', updateConfig);
+      window.removeEventListener('configurationUpdated', updateConfig);
+      clearInterval(interval);
+    };
+  }, []);
 
   const handlePrimaryCTA = async () => {
     if (isLoading) return;
+    
+    // Check configuration before proceeding
+    if (!userConfig.isConfigured) {
+      return; // Button should be disabled, but just in case
+    }
 
     // Simulate progress for demo
     setProgress(0);
@@ -48,18 +106,19 @@ const Hero = ({ onCheckSecurity, isLoading }) => {
 
       const { latitude, longitude } = position.coords;
 
-      // Simulate WiFi SSID input
-      const wifiSSID = prompt(
-        'For demo purposes, please enter your WiFi network name (SSID):\n\n' +
-        'Try these examples:\n' +
-        '• "Starbucks_WiFi" (safe zone)\n' +
-        '• "City_Airport_Free_WiFi" (unsafe)\n' +
-        '• "Home_Network" (safe zone)\n' +
-        '• Leave empty for no WiFi connection'
-      ) || '';
+      // Get saved home addresses
+      const savedAddresses = localStorage.getItem('userHomeAddresses');
+      let homeAddresses = [];
+      if (savedAddresses) {
+        try {
+          homeAddresses = JSON.parse(savedAddresses);
+        } catch (e) {
+          homeAddresses = [];
+        }
+      }
 
       // Call the security check
-      await onCheckSecurity(latitude, longitude, wifiSSID);
+      await onCheckSecurity(latitude, longitude, homeAddresses);
       
     } catch (error) {
       console.error('Error getting location:', error);
@@ -107,8 +166,8 @@ const Hero = ({ onCheckSecurity, isLoading }) => {
             text-commuter-text mb-6 leading-tight
             tracking-tight
           ">
-            Assess Your Digital &<br />
-            Physical Security Risk
+            Assess Your Digital<br />
+            Travel Security Risk
           </h1>
 
           {/* Subheading */}
@@ -126,17 +185,20 @@ const Hero = ({ onCheckSecurity, isLoading }) => {
             {/* Primary CTA */}
             <button
               onClick={handlePrimaryCTA}
-              disabled={isLoading}
-              className="
+              disabled={isLoading || !userConfig.isConfigured}
+              className={`
                 group relative inline-flex items-center px-8 py-4 
-                bg-commuter-primary hover:bg-commuter-primary-600 
-                text-commuter-bg font-semibold rounded-xl
+                font-semibold rounded-xl
                 transition-all duration-200 ease-out
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-commuter-ring
                 focus-visible:ring-offset-2 focus-visible:ring-offset-commuter-bg
                 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed
                 min-w-64
-              "
+                ${userConfig.isConfigured 
+                  ? 'bg-commuter-primary hover:bg-commuter-primary-600 text-commuter-bg' 
+                  : 'bg-commuter-surface/50 border border-commuter-surface/30 text-commuter-muted'
+                }
+              `}
             >
               {isLoading ? (
                 <>
@@ -145,6 +207,13 @@ const Hero = ({ onCheckSecurity, isLoading }) => {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Analyzing Security...
+                </>
+              ) : !userConfig.isConfigured ? (
+                <>
+                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Configuration Required
                 </>
               ) : (
                 <>
@@ -176,6 +245,40 @@ const Hero = ({ onCheckSecurity, isLoading }) => {
               </svg>
             </button>
           </div>
+
+          {/* Configuration Required Message */}
+          {!userConfig.isConfigured && (
+            <div className="max-w-md mx-auto mb-8">
+              <div className="bg-commuter-warning/10 border border-commuter-warning/30 rounded-xl p-4 text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <svg className="w-5 h-5 text-commuter-warning mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <span className="text-commuter-warning font-medium">Setup Required</span>
+                </div>
+                <p className="text-sm text-commuter-text mb-3">
+                  To use the security analysis service, please configure:
+                </p>
+                <div className="text-xs text-commuter-muted space-y-1">
+                  <div className="flex items-center justify-center">
+                    <span className={userConfig.hasEmail ? 'text-commuter-success' : 'text-commuter-danger'}>
+                      {userConfig.hasEmail ? '✓' : '✗'}
+                    </span>
+                    <span className="ml-2">2FA Email Address</span>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <span className={userConfig.hasAddresses ? 'text-commuter-success' : 'text-commuter-danger'}>
+                      {userConfig.hasAddresses ? '✓' : '✗'}
+                    </span>
+                    <span className="ml-2">At least one Home Address</span>
+                  </div>
+                </div>
+                <p className="text-xs text-commuter-muted mt-3">
+                  Click the settings gear icon ⚙️ in the top navigation to configure.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Progress bar for demo */}
           {isLoading && progress > 0 && (
