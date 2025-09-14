@@ -175,8 +175,8 @@ const Hero = ({ onCheckSecurity, isLoading }) => {
             text-lg md:text-xl text-commuter-muted mb-12 
             leading-relaxed max-w-3xl mx-auto
           ">
-            Get instant, AI-powered recommendations from your current location, 
-            network, and local threat intel—private by default.
+            Travel the world safely with AI-powered cyber insights about your 
+            destination, connections, and any privacy risks. 
           </p>
 
           {/* CTAs */}
